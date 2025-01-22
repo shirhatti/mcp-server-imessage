@@ -50,6 +50,9 @@ show_error_codes = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "local: marks tests that can't be run on CI",
+]
 
 [tool.ruff]
 target-version = "py39"

@@ -1,5 +1,3 @@
-import platform
-
 import pytest
 
 from mcp_server_imessage.iMessage import Message, iMessageServer
@@ -10,7 +8,7 @@ def test_server_creation():
     assert server.serverName == "iMessage"
 
 
-@pytest.mark.skipif(platform.system() != "Darwin", reason="iMessage tests only run on macOS")
+@pytest.mark.local
 def test_read_messages():
     server = iMessageServer()
     messages = server.read_messages(1)
