@@ -7,9 +7,13 @@ from mcp_server_imessage.AddressBook import AddressBook
 
 
 def test_addressbook_creation():
-    book = AddressBook()
-    assert hasattr(book, "store")
-    assert hasattr(book, "keys_to_fetch")
+    if platform.system() != "Darwin":
+        with pytest.raises(NotImplementedError):
+            AddressBook()
+    else:
+        book = AddressBook()
+        assert hasattr(book, "store")
+        assert hasattr(book, "keys_to_fetch")
 
 
 @pytest.mark.skipif(

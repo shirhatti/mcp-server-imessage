@@ -1,16 +1,19 @@
 import logging
+import sys
 import time
 from dataclasses import dataclass
 from typing import ClassVar, Optional
 
-import objc
-from Contacts import (
-    CNContactFamilyNameKey,
-    CNContactGivenNameKey,
-    CNContactPhoneNumbersKey,
-    CNContactStore,
-)
-from Foundation import NSPredicate
+# Only import macOS specific modules on Darwin
+if sys.platform == "darwin":
+    import objc
+    from Contacts import (
+        CNContactFamilyNameKey,
+        CNContactGivenNameKey,
+        CNContactPhoneNumbersKey,
+        CNContactStore,
+    )
+    from Foundation import NSPredicate
 
 from .errors import ContactAccessDeniedError
 
@@ -29,9 +32,14 @@ class Contact:
 
 
 class AddressBook:
-    keys_to_fetch = ClassVar[list[CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]]
+    # Define keys_to_fetch only on macOS
+    if sys.platform == "darwin":
+        keys_to_fetch = ClassVar[list[CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]]
 
     def __init__(self) -> None:
+        if sys.platform != "darwin":
+            raise NotImplementedError("AddressBook is only supported on macOS")
+
         self.store = CNContactStore.alloc().init()
         self._ensure_access()
         self._contacts_cache: dict[str, Contact] = {}

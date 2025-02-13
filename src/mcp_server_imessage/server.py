@@ -1,4 +1,6 @@
 import asyncio
+import platform
+from contextlib import suppress
 
 from mcp import stdio_server
 from mcp.server.fastmcp import FastMCP
@@ -8,7 +10,11 @@ from mcp.types import TextContent, Tool
 from .AddressBook import AddressBook
 from .iMessage import iMessageServer
 
-address_book = AddressBook()
+address_book = None
+if platform.system() == "Darwin":
+    with suppress(Exception):
+        address_book = AddressBook()
+
 server = iMessageServer(address_book=address_book)
 mcp = FastMCP(server.serverName)
 
