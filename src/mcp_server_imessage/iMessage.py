@@ -1,9 +1,11 @@
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, fields
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional, cast
 
+from peewee import DoesNotExist as PeeweeDoesNotExist
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 from .AddressBook import AddressBook
@@ -23,9 +25,9 @@ class MessageDTO:
     group_chat_name: str | None
     full_name: str | None = None
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Dynamically generate dictionary from dataclass fields"""
-        result = {}
+        result: dict[str, Any] = {}
         for field in fields(self):
             value = getattr(self, field.name)
             if field.type == datetime:
@@ -61,21 +63,21 @@ class iMessageServer:
         if db_location == ":memory:":
             self._create_tables()
 
-    def _bind_models(self):
+    def _bind_models(self) -> None:
         """Bind all models to the database"""
         models = [Message, Handle, Chat]
         for model in models:
-            model._meta.database = self.db
-        BaseModel._meta.database = self.db
+            model.bind(self.db)
+        BaseModel.bind(self.db)
 
-    def _create_tables(self):
+    def _create_tables(self) -> None:
         """Create database tables if they don't exist"""
         with self.connection():
             models = [Message, Handle, Chat]
             self.db.create_tables(models, safe=True)
 
     @contextmanager
-    def connection(self):
+    def connection(self) -> Iterator[SqliteExtDatabase]:
         """Context manager for database connections"""
         if self.db.is_closed():
             self.db.connect()
@@ -93,7 +95,7 @@ class iMessageServer:
     def get_chat_mapping(self) -> dict[str, str]:
         with self.connection():
             return {
-                chat.room_name: chat.display_name
+                str(chat.room_name): str(chat.display_name)
                 for chat in Chat.select(Chat.room_name, Chat.display_name)
                 if chat.room_name is not None
             }
@@ -101,9 +103,9 @@ class iMessageServer:
     def get_group_chat_names(self) -> list[str]:
         with self.connection():
             query = Message.select(Message.cache_roomnames).where(Message.cache_roomnames.is_null(False)).distinct()
-            return [msg.cache_roomnames for msg in query]
+            return [str(msg.cache_roomnames) for msg in query]
 
-    def read_messages(self, n: int = 10) -> list[MessageDTO]:
+    def read_messages(self, n: Optional[int] = 10) -> list[MessageDTO]:
         with self.connection():
             query = Message.select(Message, Handle).left_outer_join(Handle).order_by(Message.date.desc())
 
@@ -118,28 +120,30 @@ class iMessageServer:
 
             return messages
 
-    def _process_message_body(self, text: str | None, attributed_body: bytes | None) -> str | None:
-        if text is not None:
+    def _process_message_body(self, text: Optional[str], attributed_body: Optional[bytes]) -> Optional[str]:
+        if text:
             return text
-        if attributed_body is None:
+        if not attributed_body:
             return None
 
-        attributed_body = attributed_body.decode("utf-8", errors="replace")
-        if "NSNumber" in str(attributed_body):
-            attributed_body = str(attributed_body).split("NSNumber")[0]
-            if "NSString" in attributed_body:
-                attributed_body = str(attributed_body).split("NSString")[1]
-                if "NSDictionary" in attributed_body:
-                    attributed_body = str(attributed_body).split("NSDictionary")[0]
-                    attributed_body = attributed_body[6:-12]
-                    return attributed_body
+        try:
+            text = attributed_body.decode("utf-8", errors="replace")
+            if "NSNumber" in text:
+                text = text.split("NSNumber")[0]
+                if "NSString" in text:
+                    text = text.split("NSString")[1]
+                    if "NSdictionary" in text:
+                        text = text.split("NSdictionary")[0]
+                        return text[6:-12]
+        except (UnicodeDecodeError, AttributeError):
+            return None
         return None
 
     def _create_message_from_model(self, db_msg: Message) -> MessageDTO:
         try:
             phone_number = "Me" if db_msg.handle is None else db_msg.handle.id
-        except Handle.DoesNotExist:
-            phone_number = str(db_msg.handle_id) if db_msg.handle_id else "Me"
+        except PeeweeDoesNotExist:
+            phone_number = str(db_msg.handle) if db_msg.handle else "Me"
 
         full_name = None
         if self.address_book and not db_msg.is_from_me and phone_number != "Me":
@@ -147,17 +151,25 @@ class iMessageServer:
             if contact:
                 full_name = contact.full_name
 
-        body = self._process_message_body(db_msg.text, db_msg.attributedBody)
+        body = self._process_message_body(
+            str(db_msg.text) if db_msg.text else None, bytes(db_msg.attributedBody) if db_msg.attributedBody else None
+        )
+
         mapping = self.get_chat_mapping()
-        mapped_name = mapping.get(db_msg.cache_roomnames)
+        mapped_name = mapping.get(str(db_msg.cache_roomnames))
+
+        # Cast field values to their expected types
+        rowid = cast(int, db_msg.ROWID)
+        date_val = cast(int, db_msg.date) if db_msg.date else None
+        datetime_val = SnowflakeDecoder.decode(date_val).datetime_utc if date_val else datetime.now()
 
         return MessageDTO(
-            rowid=db_msg.ROWID,
-            datetime=SnowflakeDecoder.decode(db_msg.date).datetime_utc if db_msg.date is not None else None,
-            body=body,
+            rowid=rowid,
+            datetime=datetime_val,
+            body=str(body) if body else "",
             phone_number=phone_number,
-            is_from_me=db_msg.is_from_me,
-            cache_roomname=db_msg.cache_roomnames,
+            is_from_me=bool(db_msg.is_from_me),
+            cache_roomname=str(db_msg.cache_roomnames) if db_msg.cache_roomnames else "",
             group_chat_name=mapped_name,
             full_name=full_name,
         )
@@ -167,7 +179,7 @@ class iMessageServer:
             try:
                 message = Message.select(Message, Handle).left_outer_join(Handle).where(row_id == Message.ROWID).get()
                 return self._create_message_from_model(message)
-            except Message.DoesNotExist as err:
+            except PeeweeDoesNotExist as err:
                 raise MessageNotFoundException() from err
 
     def get_conversation_by_number(self, phone_number: str) -> list[MessageDTO]:

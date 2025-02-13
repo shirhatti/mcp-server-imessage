@@ -341,6 +341,7 @@ dependencies = [
     { name = "mcp", extra = ["cli"] },
     { name = "peewee" },
     { name = "textual" },
+    { name = "types-peewee" },
 ]
 
 [package.dev-dependencies]
@@ -359,6 +360,7 @@ requires-dist = [
     { name = "mcp", extras = ["cli"], specifier = ">=1.2.0" },
     { name = "peewee", specifier = ">=3.17.0" },
     { name = "textual", specifier = ">=0.52.1" },
+    { name = "types-peewee", specifier = ">=3.17.9.20250210" },
 ]
 
 [package.metadata.requires-dev]
@@ -903,6 +905,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cb/ce/dca7b219718afd37a0068f4f2530a727c2b74a8b6e8e0c0080a4c0de4fcd/typer-0.15.1.tar.gz", hash = "sha256:a0588c0a7fa68a1978a069818657778f86abe6ff5ea6abf472f940a08bfe4f0a", size = 99789 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/cc/0a838ba5ca64dc832aa43f727bd586309846b0ffb2ce52422543e6075e8a/typer-0.15.1-py3-none-any.whl", hash = "sha256:7994fb7b8155b64d3402518560648446072864beefd44aa2dc36972a5972e847", size = 44908 },
+]
+
+[[package]]
+name = "types-peewee"
+version = "3.17.9.20250210"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/26/c78e3fecff5bd5883aeeaa1d2fb89d415882b2513f2067568960ed0471c7/types_peewee-3.17.9.20250210.tar.gz", hash = "sha256:c54237be819216dce10a86f35253235112baa623467dd54c503944e98c1bf392", size = 19870 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/b9/52091cdc64b9eb2aef4c03997e7aa19eed04dc62b42966d1f4a53cbc427a/types_peewee-3.17.9.20250210-py3-none-any.whl", hash = "sha256:f485459ebd1f0522f16ca7e63a031bfe85daacf01428a4f8590e4a1b4a26e8d4", size = 18727 },
 ]
 
 [[package]]

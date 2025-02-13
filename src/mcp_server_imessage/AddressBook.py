@@ -2,18 +2,17 @@ import logging
 import sys
 import time
 from dataclasses import dataclass
-from typing import ClassVar, Optional
+from typing import Any, ClassVar, Optional
 
 # Only import macOS specific modules on Darwin
 if sys.platform == "darwin":
-    import objc
-    from Contacts import (
+    from Contacts import (  # type: ignore[import-untyped]
         CNContactFamilyNameKey,
         CNContactGivenNameKey,
         CNContactPhoneNumbersKey,
         CNContactStore,
     )
-    from Foundation import NSPredicate
+    from Foundation import NSPredicate  # type: ignore[import-untyped]
 
 from .errors import ContactAccessDeniedError
 
@@ -34,7 +33,7 @@ class Contact:
 class AddressBook:
     # Define keys_to_fetch only on macOS
     if sys.platform == "darwin":
-        keys_to_fetch = ClassVar[list[CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]]
+        keys_to_fetch: ClassVar[list[str]] = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]
 
     def __init__(self) -> None:
         if sys.platform != "darwin":
@@ -43,10 +42,10 @@ class AddressBook:
         self.store = CNContactStore.alloc().init()
         self._ensure_access()
         self._contacts_cache: dict[str, Contact] = {}
-        self._last_cache_update = 0
-        self._cache_ttl = 300  # 5 minutes cache TTL
+        self._last_cache_update: int = 0
+        self._cache_ttl: int = 300  # 5 minutes cache TTL
 
-    def _ensure_access(self):
+    def _ensure_access(self) -> None:
         """Check and request contacts access if needed"""
         authorization_status = CNContactStore.authorizationStatusForEntityType_(0)
         if authorization_status == 0:  # Not Determined
@@ -54,10 +53,10 @@ class AddressBook:
         elif authorization_status == 2:  # Denied
             raise ContactAccessDeniedError()
 
-    def request_contacts_access(self):
+    def request_contacts_access(self) -> None:
         """Request permission to access contacts"""
 
-        def completion_handler(granted: bool, error: Optional[objc.objc_object]) -> None:
+        def completion_handler(granted: bool, error: Optional[Any]) -> None:
             if error:
                 logging.error(f"Error requesting contacts access: {error}")
             else:
@@ -91,9 +90,9 @@ class AddressBook:
             logging.exception("Failed to fetch contacts")
         return contacts_map
 
-    def _update_cache_if_needed(self):
+    def _update_cache_if_needed(self) -> None:
         """Update the cache if it's expired"""
-        current_time = time.time()
+        current_time = int(time.time())
         if current_time - self._last_cache_update > self._cache_ttl:
             self._contacts_cache = self._fetch_all_contacts()
             self._last_cache_update = current_time
@@ -116,13 +115,13 @@ class AddressBook:
             # Try exact match first
             if clean_number in self._contacts_cache:
                 return self._contacts_cache[clean_number]
-
-            # Try partial match
-            for cached_number, contact in self._contacts_cache.items():
-                if clean_number in cached_number:
-                    return contact
             else:
-                return None
+                # Try partial match
+                for cached_number, contact in self._contacts_cache.items():
+                    if clean_number in cached_number:
+                        return contact
         except Exception:
             logging.exception("Failed to lookup contact")
+            return None
+        else:
             return None
