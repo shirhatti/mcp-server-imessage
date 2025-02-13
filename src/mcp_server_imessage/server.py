@@ -1,13 +1,63 @@
+import asyncio
+
+from mcp import stdio_server
 from mcp.server.fastmcp import FastMCP
+from mcp.server.lowlevel import Server
+from mcp.types import TextContent, Tool
 
-from .iMessage import Message, iMessageServer
+from .AddressBook import AddressBook
+from .iMessage import iMessageServer
 
-# Create an MCP server
-server = iMessageServer()
+address_book = AddressBook()
+server = iMessageServer(address_book=address_book)
 mcp = FastMCP(server.serverName)
 
+app = Server("iMessage")
 
-@mcp.tool()
-def read_iMessage(n: int) -> list[Message]:
-    """Read last n iMessage messages"""
-    return server.read_messages(n)
+
+@app.list_tools()
+async def list_tools() -> list[Tool]:
+    return [
+        Tool(
+            name="inbox",
+            description="Lists the messages in the inbox",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Maximum number of messages to return", "default": 100}
+                },
+            },
+        ),
+        Tool(
+            name="sent",
+            description="Lists the messages in the sent folder",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "description": "Maximum number of messages to return", "default": 100}
+                },
+            },
+        ),
+    ]
+
+
+@app.call_tool()
+async def fetch_tool(name: str, arguments: dict) -> list[TextContent]:
+    messages = []
+    if name == "inbox":
+        limit = arguments.get("limit", 100)
+        messages = server.get_received_messages(limit=limit)
+    elif name == "sent":
+        limit = arguments.get("limit", 100)
+        messages = server.get_sent_messages(limit=limit)
+    return [TextContent(type="text", text=msg.__str__()) for msg in messages]
+
+
+async def main():
+    # Start server
+    async with stdio_server() as streams:
+        await app.run(streams[0], streams[1], app.create_initialization_options())
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

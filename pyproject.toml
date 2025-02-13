@@ -13,6 +13,8 @@ classifiers = [
 ]
 dependencies = [
     "mcp[cli]>=1.2.0",
+    "peewee>=3.17.0",
+    "textual>=0.52.1",
 ]
 
 [project.urls]
@@ -50,9 +52,7 @@ show_error_codes = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = [
-    "local: marks tests that can't be run on CI",
-]
+addopts = "-ra -q"
 
 [tool.ruff]
 target-version = "py39"

@@ -1,5 +1,39 @@
 {
-  "python.testing.pytestArgs": ["tests"],
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/.pytest_cache": true,
+    "**/.coverage": true,
+    "**/.tox": true,
+    "**/htmlcov": true,
+    "**/*.egg-info": true,
+    "**/*.egg": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.ipynb_checkpoints": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true
+  },
+  "files.watcherExclude": {
+    "**/__pycache__/**": true,
+    "**/.pytest_cache/**": true,
+    "**/.tox/**": true,
+    "**/htmlcov/**": true,
+    "**/*.egg-info/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/.ipynb_checkpoints/**": true,
+    "**/.mypy_cache/**": true,
+    "**/.ruff_cache/**": true,
+    "**/venv/**": true,
+    "**/.venv/**": true
+  },
+  "chat.promptFiles": {
+    ".github/prompts": true,
+  }
 }
