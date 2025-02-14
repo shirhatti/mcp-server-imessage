@@ -1,6 +1,6 @@
 [project]
 name = "mcp-server-imessage"
-version = "0.0.3"
+version = "0.0.4"
 description = "MCP server for iMessage"
 authors = [{ name = "Sourabh Shirhatti", email = "sourabh@mail.shirhatti.com" }]
 readme = "README.md"

@@ -59,11 +59,15 @@ async def fetch_tool(name: str, arguments: dict) -> list[TextContent]:
     return [TextContent(type="text", text=msg.__str__()) for msg in messages]
 
 
-async def main() -> None:
+async def run_server() -> None:
     # Start server
     async with stdio_server() as streams:
         await app.run(streams[0], streams[1], app.create_initialization_options())
 
 
+def main() -> None:
+    asyncio.run(run_server())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
