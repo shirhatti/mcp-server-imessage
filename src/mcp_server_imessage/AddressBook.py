@@ -115,11 +115,6 @@ class AddressBook:
             # Try exact match first
             if clean_number in self._contacts_cache:
                 return self._contacts_cache[clean_number]
-            else:
-                # Try partial match
-                for cached_number, contact in self._contacts_cache.items():
-                    if clean_number in cached_number:
-                        return contact
         except Exception:
             logging.exception("Failed to lookup contact")
             return None

@@ -121,32 +121,36 @@ class iMessageServer:
             return messages
 
     def _process_message_body(self, text: Optional[str], attributed_body: Optional[bytes]) -> Optional[str]:
-        if text:
+        if text is not None:
             return text
-        if not attributed_body:
+        elif attributed_body is None:
             return None
-
-        try:
-            text = attributed_body.decode("utf-8", errors="replace")
-            if "NSNumber" in text:
-                text = text.split("NSNumber")[0]
-                if "NSString" in text:
-                    text = text.split("NSString")[1]
-                    if "NSdictionary" in text:
-                        text = text.split("NSdictionary")[0]
-                        return text[6:-12]
-        except (UnicodeDecodeError, AttributeError):
-            return None
-        return None
+        else:
+            decoded_text = attributed_body.decode("utf-8", errors="replace")
+            if "NSNumber" in decoded_text:
+                decoded_text = decoded_text.split("NSNumber")[0]
+                if "NSString" in decoded_text:
+                    decoded_text = decoded_text.split("NSString")[1]
+                    if "NSDictionary" in decoded_text:
+                        decoded_text = decoded_text.split("NSDictionary")[0]
+                        decoded_text = decoded_text[6:-12]
+                        return decoded_text
+            return decoded_text
 
     def _create_message_from_model(self, db_msg: Message) -> MessageDTO:
+        phone_number = "Me"
         try:
-            phone_number = "Me" if db_msg.handle is None else db_msg.handle.id
-        except PeeweeDoesNotExist:
-            phone_number = str(db_msg.handle) if db_msg.handle else "Me"
+            if hasattr(db_msg, "handle") and db_msg.handle is not None:
+                try:
+                    handle = Handle.get_by_id(db_msg.handle)
+                    phone_number = handle.id if handle and handle.id else "Unknown"
+                except PeeweeDoesNotExist:
+                    phone_number = "Unknown"
+        except (PeeweeDoesNotExist, AttributeError):
+            pass  # Keep default "Me" if handle lookup fails
 
         full_name = None
-        if self.address_book and not db_msg.is_from_me and phone_number != "Me":
+        if self.address_book and not db_msg.is_from_me and phone_number not in ("Me", "Unknown"):
             contact = self.address_book.get_contact_by_phone(phone_number)
             if contact:
                 full_name = contact.full_name
